@@ -13,26 +13,45 @@ require('./db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ===== MIDDLEWARE =====
-app.use(helmet({
-  contentSecurityPolicy: false, // отключаем для HTML файлов
-}));
+// ===== CORS =====
 app.use(cors({
-  origin: process.env.SITE_URL || '*',
+  origin: (origin, cb) => {
+    // Разрешаем запросы без origin (мобильные приложения, curl)
+    if (!origin) return cb(null, true);
+    // Разрешаем все домены artwin.live и Cloudflare Pages/Workers
+    if (
+      origin === 'https://artwin.live' ||
+      origin === 'https://www.artwin.live' ||
+      origin.endsWith('.artwin.live') ||
+      origin.endsWith('.pages.dev') ||
+      origin.endsWith('.workers.dev') ||
+      origin.startsWith('http://localhost')
+    ) return cb(null, true);
+    // В продакшене — разрешаем всё (можно ужесточить позже)
+    cb(null, true);
+  },
   credentials: true,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
 }));
+
+// Preflight для всех маршрутов
+app.options('*', cors());
+
+// ===== MIDDLEWARE =====
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Общий лимитер запросов
+// Лимитер
 app.use('/api/', rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 минута
+  windowMs: 1 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   message: { error: 'Слишком много запросов' },
 }));
 
-// Папка для загрузок
+// Загрузки
 const uploadsDir = process.env.UPLOADS_DIR || './uploads';
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use('/uploads', express.static(uploadsDir));
@@ -53,11 +72,9 @@ app.get('/api/health', (req, res) => {
 });
 
 // ===== FRONTEND =====
-// Раздаём статику из папки frontend/public
 const frontendPath = path.join(__dirname, '../frontend/public');
 if (fs.existsSync(frontendPath)) {
   app.use(express.static(frontendPath));
-  // SPA fallback — все неизвестные маршруты отдают index.html
   app.get('*', (req, res) => {
     res.sendFile(path.join(frontendPath, 'index.html'));
   });
