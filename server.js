@@ -61,10 +61,14 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/jobs', require('./routes/jobs'));
 app.use('/api/messages', require('./routes/messages'));
+app.use('/api/crypto', require('./routes/crypto'));
 
 const { walletRouter, notifRouter } = require('./routes/wallet');
 app.use('/api/wallet', walletRouter);
 app.use('/api/notifications', notifRouter);
+
+const { adminRouter } = require('./routes/admin');
+app.use('/api/admin', adminRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
