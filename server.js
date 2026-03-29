@@ -13,6 +13,9 @@ require('./db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Railway использует прокси — доверяем заголовкам
+app.set('trust proxy', 1);
+
 // ===== CORS =====
 app.use(cors({
   origin: (origin, cb) => {
