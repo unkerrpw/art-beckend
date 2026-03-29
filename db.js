@@ -215,6 +215,38 @@ CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
 CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id);
 CREATE INDEX IF NOT EXISTS idx_notifs_user ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id);
+
+-- Крипто-платежи (CryptoBot)
+CREATE TABLE IF NOT EXISTS pending_payments (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  uuid        TEXT UNIQUE NOT NULL,
+  user_id     INTEGER NOT NULL REFERENCES users(id),
+  invoice_id  INTEGER UNIQUE NOT NULL,
+  asset       TEXT NOT NULL,
+  asset_amount TEXT NOT NULL,
+  usd_amount  REAL NOT NULL,
+  status      TEXT DEFAULT 'pending' CHECK(status IN ('pending','paid','expired')),
+  created_at  TEXT DEFAULT (datetime('now'))
+);
+
+-- Заявки на вывод
+CREATE TABLE IF NOT EXISTS withdraw_requests (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  uuid         TEXT UNIQUE NOT NULL,
+  user_id      INTEGER NOT NULL REFERENCES users(id),
+  asset        TEXT NOT NULL,
+  network      TEXT,
+  address      TEXT NOT NULL,
+  amount_usd   REAL NOT NULL,
+  status       TEXT DEFAULT 'pending' CHECK(status IN ('pending','completed','rejected')),
+  processed_at TEXT,
+  created_at   TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_pending_payments_user ON pending_payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_pending_payments_invoice ON pending_payments(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_withdraw_requests_user ON withdraw_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_withdraw_requests_status ON withdraw_requests(status);
 `);
 
 console.log('✅ База данных инициализирована:', DB_PATH);
